@@ -9,15 +9,32 @@
 import UIKit
 import AFNetworking
 
-class PhotosViewController: UIViewController, UITableViewDelegate, UITableViewDataSource{
+class PhotosViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UIScrollViewDelegate{
 
     var posts: [NSDictionary] = []
+    var isMoreDataLoading = false
     
     @IBOutlet weak var tableView: UITableView!
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.delegate = self
         tableView.dataSource = self
+        
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(refreshControlAction(_:)), for: UIControlEvents.valueChanged)
+        
+        refreshControlAction(refreshControl)
+        
+        tableView.insertSubview(refreshControl, at: 0)
+        
+        // Uncomment the following line to preserve selection between presentations
+        // self.clearsSelectionOnViewWillAppear = false
+        
+        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
+        // self.navigationItem.rightBarButtonItem = self.editButtonItem()
+    }
+    
+    func refreshControlAction(_ refreshControl: UIRefreshControl) {
         
         let url = URL(string:"https://api.tumblr.com/v2/blog/humansofnewyork.tumblr.com/posts/photo?api_key=Q6vHoaVm5L1u2ZAW1fqv3Jw48gFzYVg9P0vH0VHl3GVy6quoGV")
         let request = URLRequest(url: url!)
@@ -45,16 +62,14 @@ class PhotosViewController: UIViewController, UITableViewDelegate, UITableViewDa
                         // self.feeds = responseFieldDictionary["posts"] as! [NSDictionary]
                     }
                     self.tableView.reloadData()
+                    refreshControl.endRefreshing()
                 }
         });
         task.resume()
-        
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-        
-        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-        // self.navigationItem.rightBarButtonItem = self.editButtonItem()
+    
     }
+    
+    
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
@@ -83,16 +98,39 @@ class PhotosViewController: UIViewController, UITableViewDelegate, UITableViewDa
 
         return cell!
     }
+    
+    //remove grey selection effect
+    public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath){
+        tableView.deselectRow(at: indexPath, animated:true)
+    }
 
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        // Handle scroll behavior here
+        if (!isMoreDataLoading) {
+            let scrollViewContentHeight = tableView.contentSize.height
+            let scrollOffsetThreshold = scrollViewContentHeight - tableView.bounds.size.height
+            
+            if(scrollView.contentOffset.y > scrollOffsetThreshold && tableView.isDragging) {
+                isMoreDataLoading = true
+            }
+        }
+    }
 
-    /*
+    
     // MARK: - Navigation
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        let cell = sender as! PhotoCell
+        
+        
+        let destinationViewController = segue.destination as! PhotoDetailsViewController
+      
+        destinationViewController.postPhoto = cell.postPhoto.image
+        
         // Get the new view controller using segue.destinationViewController.
         // Pass the selected object to the new view controller.
     }
-    */
+    
 
 }
